@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene>
+      <a-camera id="userCamera" position="0 1.6 0" look-controls>
+        <a-ring color="#333" radius-inner="0.5" radius-outer="0.8" position="0 0 -1" opacity="0.5"></a-ring>
+        <a-text value="O2: 98%" color="cyan" position="-0.4 0.3 -1" width="2"></a-text>
+      </a-camera>
+
+      <a-sphere id="spaceDebris" position="1 1.6 -4" radius="0.5" color="grey" 
+                animation="property: position; to: 0 1.6 0; dur: 8000; easing: linear">
+      </a-sphere>
+
+      <a-sky color="#FFFFFF"></a-sky> 
+    </a-scene>
+
+    <script>
+      const cameraEntity = document.querySelector('#userCamera');
+      const debrisEntity = document.querySelector('#spaceDebris');
+      let hasWarned = false;
+
+      // Έλεγχος απόστασης κάθε 100ms (10 φορές το δευτερόλεπτο)
+      setInterval(() => {
+        // Παίρνουμε τις θέσεις των δύο αντικειμένων στο χώρο
+        const cameraPos = cameraEntity.object3D.position;
+        const debrisPos = debrisEntity.object3D.position;
+
+        // Υπολογίζουμε την απόσταση
+        const distance = cameraPos.distanceTo(debrisPos);
+
+        // Αν η απόσταση πέσει κάτω από 2.5 μέτρα και δεν έχουμε μιλήσει ακόμα
+        if (distance < 2.5 && !hasWarned) {
+          hasWarned = true; // Σταματάμε τον έλεγχο για να μην το πει 100 φορές
+
+          // Εντολή ομιλίας
+          const msg = new SpeechSynthesisUtterance(
+            "Warning! Collision imminent. Debris detected in safe zone. Move three meters to the left."
+          );
+          
+          // Ρυθμίσεις για να ακούγεται σαν AI
+          msg.lang = 'en-US';
+          msg.pitch = 0.8; // Λίγο πιο μπάσα φωνή
+          msg.rate = 1.1;  // Λίγο πιο γρήγορη για επείγον περιστατικό
+
+          window.speechSynthesis.speak(msg);
+        }
+      }, 100);
+    </script>
+  </body>
+</html>
