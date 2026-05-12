@@ -3,7 +3,6 @@
   <head>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <style>
-      /* Custom Loading Screen */
       #overlay {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -15,7 +14,7 @@
       #startBtn {
         padding: 15px 30px; background: none; border: 2px solid cyan;
         color: cyan; cursor: pointer; font-size: 20px; margin-top: 20px;
-        transition: 0.3s;
+        transition: 0.3s; border-radius: 5px;
       }
       #startBtn:hover { background: cyan; color: black; }
     </style>
@@ -29,13 +28,11 @@
 
           const cameraPos = new THREE.Vector3();
           const debrisPos = new THREE.Vector3();
-
           camera.object3D.getWorldPosition(cameraPos);
           el.object3D.getWorldPosition(debrisPos);
 
           const distance = cameraPos.distanceTo(debrisPos);
 
-          // Threat Zone: 6 meters
           if (distance < 6 && !this.hasWarned) {
             this.hasWarned = true; 
             this.speak();
@@ -53,10 +50,8 @@
       function startMission() {
         window.missionStarted = true;
         document.getElementById('overlay').style.display = 'none';
-        // Unlock speech synthesis immediately with a silent or short greeting
-        const welcome = new SpeechSynthesisUtterance("AI Assistant Online.");
+        const welcome = new SpeechSynthesisUtterance("AI Assistant Online. Telemetry active.");
         welcome.lang = 'en-US';
-        welcome.volume = 0.5;
         window.speechSynthesis.speak(welcome);
       }
     </script>
@@ -71,13 +66,29 @@
     <a-scene loading-screen="enabled: false">
       <a-assets>
         <a-asset-item id="myAsteroid" src="asteroid.glb"></a-asset-item>
-        <img id="galaxy" src="space_bg.jpg">
       </a-assets>
 
       <a-camera id="userCamera" position="0 1.6 0" look-controls>
-        <a-ring color="#333" radius-inner="0.5" radius-outer="0.8" position="0 0 -1" opacity="0.5"></a-ring>
-        <a-text value="O2: 98%" color="cyan" position="-0.4 0.3 -1" width="2"></a-text>
-        <a-text value="AI: MONITORING" color="#00FF00" position="-0.4 -0.3 -1" width="1.5"></a-text>
+        
+        <a-entity position="-0.6 0.4 -1">
+          <a-text value="LIFE SUPPORT" color="cyan" width="1.5" position="0 0.1 0"></a-text>
+          
+          <a-text value="O2" color="white" width="1.2" position="0 0.04 0"></a-text>
+          <a-plane color="#333" width="0.4" height="0.02" position="0.25 0.04 -0.001"></a-plane>
+          <a-plane color="cyan" width="0.38" height="0.015" position="0.24 0.04 0"></a-plane>
+          <a-text value="98%" color="cyan" width="1.2" position="0.5 0.04 0"></a-text>
+
+          <a-text value="CO2" color="white" width="1.2" position="0 -0.02 0"></a-text>
+          <a-plane color="#333" width="0.4" height="0.02" position="0.25 -0.02 -0.001"></a-plane>
+          <a-plane color="#00FF00" width="0.08" height="0.015" position="0.09 -0.02 0"></a-plane>
+          <a-text value="SAFE" color="#00FF00" width="1" position="0.5 -0.02 0"></a-text>
+        </a-entity>
+
+        <a-entity position="0.4 -0.4 -1">
+          <a-text value="AI ASSISTANT" color="#00FF00" width="1.5" position="0 0.03 0"></a-text>
+          <a-text value="SCANNING SECTOR..." color="white" width="1.2" position="0 -0.03 0"></a-text>
+        </a-entity>
+
       </a-camera>
 
       <a-entity id="spaceDebris" 
@@ -88,7 +99,7 @@
                 animation="property: position; to: 0 1.6 0; dur: 15000; easing: linear; startEvents: loaded">
       </a-entity>
 
-      <a-sky src="#galaxy"></a-sky> 
+      <a-sky color="#000000"></a-sky> 
     </a-scene>
   </body>
 </html>
