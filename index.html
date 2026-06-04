@@ -20,6 +20,34 @@
     </style>
     
     <script>
+      let selectedFemaleVoice = null;
+      let recognition = null;
+
+      function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        selectedFemaleVoice = voices.find(voice => 
+          voice.lang.includes('en') && 
+          (voice.name.includes('Zira') || 
+           voice.name.includes('Hazel') || 
+           voice.name.includes('Natural') || 
+           voice.name.includes('Google US English'))
+        );
+
+        if (!selectedFemaleVoice) {
+          selectedFemaleVoice = voices.find(voice => 
+            voice.lang.includes('en') && voice.name.toLowerCase().includes('female')
+          );
+        }
+        if (!selectedFemaleVoice) {
+          selectedFemaleVoice = voices.find(voice => voice.lang.includes('en'));
+        }
+      }
+
+      if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+      }
+
+      // Proximity Alert Component
       AFRAME.registerComponent('proximity-alert', {
         tick: function () {
           const el = this.el;
@@ -33,26 +61,98 @@
 
           const distance = cameraPos.distanceTo(debrisPos);
 
-          if (distance < 6 && !this.hasWarned) {
+          // Early alert calculation threshold (28 meters out)
+          if (distance < 28 && !this.hasWarned) {
             this.hasWarned = true; 
-            this.speak();
+            updateHUDLog("ALERT: COLLISION RISK");
+            speakText("Warning! Collision risk detected. Debris approaching safe zone. Modify path three meters to the left.");
           }
-        },
-        speak: function() {
-          window.speechSynthesis.cancel();
-          const msg = new SpeechSynthesisUtterance("Warning! Collision imminent. Debris detected in safe zone. Move three meters to the left.");
-          msg.lang = 'en-US';
-          msg.pitch = 0.8;
-          window.speechSynthesis.speak(msg);
         }
       });
 
+      // Unified Text-to-Speech Engine
+      function speakText(text, callback) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        if (selectedFemaleVoice) {
+          msg.voice = selectedFemaleVoice;
+        }
+        msg.lang = 'en-US';
+        msg.pitch = 1.05; 
+        msg.rate = 0.85;  
+
+        if (callback) {
+          msg.onend = callback;
+        }
+        window.speechSynthesis.speak(msg);
+      }
+
+      // Voice recognition framework (Kept as fallback loop if hosted inside secure environments)
+      function initVoiceRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = function(event) {
+          const speechToText = event.results[event.results.length - 1][0].transcript.toLowerCase();
+          if (speechToText.includes("aria")) {
+            if (speechToText.includes("scan") || speechToText.includes("threat") || speechToText.includes("danger")) {
+              recognition.stop(); 
+              updateHUDLog("ARIA: SCANNING...");
+              speakText("Scanning for threats. Please hold.", function() {
+                executeRadarScan();
+              });
+            }
+          }
+        };
+
+        recognition.onend = function() {
+          if (window.missionStarted) recognition.start();
+        };
+
+        recognition.start();
+      }
+
+      function executeRadarScan() {
+        const debris = document.querySelector('#spaceDebris');
+        const camera = document.querySelector('#userCamera');
+        if (!debris || !camera) return;
+
+        const cameraPos = new THREE.Vector3();
+        const debrisPos = new THREE.Vector3();
+        camera.object3D.getWorldPosition(cameraPos);
+        debris.object3D.getWorldPosition(debrisPos);
+
+        const distance = cameraPos.distanceTo(debrisPos);
+
+        if (distance > 28) {
+          updateHUDLog("ARIA: TELEMETRY CLEAN");
+          speakText("Scan complete. Debris tracking telemetry is clean. No immediate dangers detected.", () => recognition.start());
+        } else {
+          updateHUDLog("ALERT: SECTOR RISK");
+          speakText("Warning. Localized sector collision risk. Alter trajectory three meters left.", () => recognition.start());
+        }
+      }
+
+      // Dynamic function to change the lower right text display to match active situations
+      function updateHUDLog(statusString) {
+        const textEntity = document.querySelector('#ariaStatusText');
+        if (textEntity) {
+          textEntity.setAttribute('value', statusString);
+        }
+      }
+
       function startMission() {
+        loadVoices();
         window.missionStarted = true;
         document.getElementById('overlay').style.display = 'none';
-        const welcome = new SpeechSynthesisUtterance("AI Assistant Online. EVA Systems initialized. Telemetry stable.");
-        welcome.lang = 'en-US';
-        window.speechSynthesis.speak(welcome);
+        
+        speakText("Aria online. All systems activated.");
+        initVoiceRecognition();
       }
     </script>
   </head>
@@ -70,7 +170,7 @@
 
       <a-camera id="userCamera" position="0 1.6 0" look-controls>
         
-        <a-entity position="-0.5 0.3 -0.8" scale="0.8 0.8 0.8">
+        <a-entity position="-0.55 0.35 -1.2" scale="0.9 0.9 0.9">
           <a-text value="EVA SYSTEMS" color="cyan" width="1.2" position="0 0.1 0"></a-text>
           
           <a-text value="O2 LVL" color="white" width="0.9" position="0 0.05 0"></a-text>
@@ -79,26 +179,29 @@
           <a-text value="SUIT P." color="white" width="0.9" position="0 0.01 0"></a-text>
           <a-text value="4.3 PSI" color="cyan" width="1" position="0.15 0.01 0"></a-text>
           
-          <a-text value="CO2" color="white" width="0.9" position="0 -0.03 0"></a-text>
-          <a-plane color="cyan" width="0.05" height="0.008" position="0.07 -0.03 0" opacity="0.5"></a-plane>
+          <a-text value="CO2 PP" color="white" width="0.9" position="0 -0.03 0"></a-text>
+          <a-text value="NOMINAL" color="green" width="1" position="0.15 -0.03 0"></a-text>
         </a-entity>
 
-        <a-entity position="0.35 0.3 -0.8" scale="0.8 0.8 0.8">
+        <a-entity position="0.38 0.35 -1.2" scale="0.9 0.9 0.9">
           <a-text value="BIOMETRICS" color="cyan" width="1.2" position="0 0.1 0"></a-text>
           
           <a-text value="HR" color="white" width="0.9" position="0 0.05 0"></a-text>
           <a-text value="72 BPM" color="white" width="1.2" position="0.1 0.05 0"
                   animation="property: opacity; from: 1; to: 0.3; dur: 800; dir: alternate; loop: true">
           </a-text>
-
+          
           <a-text value="BATT" color="white" width="0.9" position="0 0.01 0"></a-text>
           <a-plane color="cyan" width="0.2" height="0.008" position="0.15 0.01 0" opacity="0.8"></a-plane>
+          
+          <a-text value="CORE TMP" color="white" width="0.9" position="0 -0.03 0"></a-text>
+          <a-text value="37.2 C" color="cyan" width="1" position="0.17 -0.03 0"></a-text>
         </a-entity>
 
-        <a-entity position="0.3 -0.35 -0.8" scale="0.7 0.7 0.7">
+        <a-entity position="0.32 -0.38 -1.2" scale="0.8 0.8 0.8">
           <a-text value="AI ASSISTANT" color="cyan" width="1.2" position="0 0.04 0"></a-text>
-          <a-text value="SCANNING SECTOR 4-B..." color="white" width="0.9" position="0 0 0" opacity="0.8"></a-text>
-          <a-text value="VELOCITY: 12.4 km/s" color="white" width="0.9" position="0 -0.04 0" opacity="0.6"></a-text>
+          <a-text id="ariaStatusText" value="RADAR LOG: ACTIVE" color="white" width="0.9" position="0 0 0" opacity="0.8"></a-text>
+          <a-text value="COMMS LINK: STABLE" color="white" width="0.9" position="0 -0.04 0" opacity="0.6"></a-text>
         </a-entity>
 
       </a-camera>
@@ -106,9 +209,9 @@
       <a-entity id="spaceDebris" 
                 gltf-model="#myAsteroid" 
                 proximity-alert
-                position="2 1.6 -15" 
+                position="4 1.6 -40" 
                 scale="0.01 0.01 0.01"
-                animation="property: position; to: 0 1.6 0; dur: 15000; easing: linear; startEvents: loaded">
+                animation="property: position; to: 0 1.6 0; dur: 35000; easing: linear; startEvents: loaded">
       </a-entity>
 
       <a-sky color="#000000"></a-sky> 
