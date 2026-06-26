@@ -131,7 +131,7 @@
         const distance = cameraPos.distanceTo(debrisPos);
 
         if (distance > 34) {
-          updateHUDLog("ARIA: TELEMETRY CLEAN");
+          updateHUDLog("ALICE: TELEMETRY CLEAN");
           showHUDWarning(false); // Clear warning sign if clean
           speakText("Scan complete. Debris tracking telemetry is clean. No immediate dangers detected.", () => recognition.start());
         } else {
@@ -162,7 +162,7 @@
         window.missionStarted = true;
         document.getElementById('overlay').style.display = 'none';
         
-        speakText("Aria online. All systems activated.");
+        speakText("Alice online. All systems activated.");
         initVoiceRecognition();
       }
     </script>
