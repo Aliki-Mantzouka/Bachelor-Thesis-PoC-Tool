@@ -61,10 +61,11 @@
 
           const distance = cameraPos.distanceTo(debrisPos);
 
-          // Early alert calculation threshold (28 meters out)
-          if (distance < 28 && !this.hasWarned) {
+          // Early alert calculation threshold (Increased to 34 meters out)
+          if (distance < 34 && !this.hasWarned) {
             this.hasWarned = true; 
             updateHUDLog("ALERT: COLLISION RISK");
+            showHUDWarning(true); // Show warning sign
             speakText("Warning! Collision risk detected. Debris approaching safe zone. Modify path three meters to the left.");
           }
         }
@@ -87,7 +88,7 @@
         window.speechSynthesis.speak(msg);
       }
 
-      // Voice recognition framework (Kept as fallback loop if hosted inside secure environments)
+      // Voice recognition framework
       function initVoiceRecognition() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) return;
@@ -129,12 +130,22 @@
 
         const distance = cameraPos.distanceTo(debrisPos);
 
-        if (distance > 28) {
+        if (distance > 34) {
           updateHUDLog("ARIA: TELEMETRY CLEAN");
+          showHUDWarning(false); // Clear warning sign if clean
           speakText("Scan complete. Debris tracking telemetry is clean. No immediate dangers detected.", () => recognition.start());
         } else {
           updateHUDLog("ALERT: SECTOR RISK");
+          showHUDWarning(true); // Show warning sign if risk found
           speakText("Warning. Localized sector collision risk. Alter trajectory three meters left.", () => recognition.start());
+        }
+      }
+
+      // Helper to display/hide the visual HUD Warning Sign
+      function showHUDWarning(visible) {
+        const warningSign = document.querySelector('#hudWarningSign');
+        if (warningSign) {
+          warningSign.setAttribute('visible', visible);
         }
       }
 
@@ -197,6 +208,15 @@
           <a-text value="CORE TMP" color="white" width="0.9" position="0 -0.03 0"></a-text>
           <a-text value="37.2 C" color="cyan" width="1" position="0.17 -0.03 0"></a-text>
         </a-entity>
+
+        <a-text id="hudWarningSign" 
+                value="[ WARNING ]" 
+                color="red" 
+                width="1.5" 
+                position="0.38 0.52 -1.2" 
+                visible="false"
+                animation="property: opacity; from: 1; to: 0.1; dur: 300; dir: alternate; loop: true">
+        </a-text>
 
         <a-entity position="0.32 -0.38 -1.2" scale="0.8 0.8 0.8">
           <a-text value="AI ASSISTANT" color="cyan" width="1.2" position="0 0.04 0"></a-text>
