@@ -3,6 +3,7 @@
   <head>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <style>
+      /* Full-screen mission start overlay shown before the EVA simulation begins. */
       #overlay {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -20,9 +21,11 @@
     </style>
     
     <script>
+      // Stores the browser voice used by Alice and the speech recognition object.
       let selectedFemaleVoice = null;
       let recognition = null;
 
+      // Selects an English voice for Alice using the browser's speech synthesis voices.
       function loadVoices() {
         const voices = window.speechSynthesis.getVoices();
         selectedFemaleVoice = voices.find(voice => 
@@ -47,7 +50,8 @@
         speechSynthesis.onvoiceschanged = loadVoices;
       }
 
-      // Proximity Alert Component
+      // Checks the distance between the astronaut camera and the approaching debris.
+      // When the debris enters the unsafe zone, the HUD warning and Alice's voice alert are triggered.
       AFRAME.registerComponent('proximity-alert', {
         tick: function () {
           const el = this.el;
@@ -70,7 +74,8 @@
         }
       });
 
-      // Automated Starfield Generator Component
+      // Creates a simple starfield so the PoC looks like an EVA space environment.
+      // This is visual context only and not part of the safety logic.
       AFRAME.registerComponent('starfield-generator', {
         init: function () {
           const sceneEl = this.el;
@@ -103,6 +108,8 @@
         }
       });
 
+      // Makes Alice speak a message through the browser.
+      // This represents the voice-based assistant support discussed in the thesis.
       function speakText(text, callback) {
         window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(text);
@@ -119,6 +126,8 @@
         window.speechSynthesis.speak(msg);
       }
 
+      // Starts voice recognition so the astronaut can ask Alice to scan for threats (not fully implemented).
+      // In this PoC, the recognized commands are simple and browser-based.
       function initVoiceRecognition() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) return;
@@ -130,10 +139,10 @@
 
         recognition.onresult = function(event) {
           const speechToText = event.results[event.results.length - 1][0].transcript.toLowerCase();
-          if (speechToText.includes("aria")) {
+          if (speechToText.includes("alice")) {
             if (speechToText.includes("scan") || speechToText.includes("threat") || speechToText.includes("danger")) {
               recognition.stop(); 
-              updateHUDLog("ARIA: SCANNING...");
+              updateHUDLog("ALICE: SCANNING...");
               speakText("Scanning for threats. Please hold.", function() {
                 executeRadarScan();
               });
@@ -148,6 +157,8 @@
         recognition.start();
       }
 
+      // Performs a simplified radar scan by checking the debris distance from the user.
+      // It uses simulated scene data, not real spacesuit sensors or a validated AI model.
       function executeRadarScan() {
         const debris = document.querySelector('#spaceDebris');
         const camera = document.querySelector('#userCamera');
@@ -161,7 +172,7 @@
         const distance = cameraPos.distanceTo(debrisPos);
 
         if (distance > 34) {
-          updateHUDLog("ARIA: TELEMETRY CLEAN");
+          updateHUDLog("ALICE: TELEMETRY CLEAN");
           showHUDWarning(false); 
           speakText("Scan complete. Debris tracking telemetry is clean. No immediate dangers detected.", () => recognition.start());
         } else {
@@ -171,7 +182,7 @@
         }
       }
 
-      // Helper to display/hide the visual HUD Warning Sign
+      // Shows or hides the red HUD warning sign when a threat is detected.
       function showHUDWarning(visible) {
         const warningSign = document.querySelector('#hudWarningSign');
         if (warningSign) {
@@ -179,14 +190,15 @@
         }
       }
 
-      // Dynamic function to change the lower right text display to match active situations
+      // Updates the AI assistant status text on the lower-right HUD panel.
       function updateHUDLog(statusString) {
-        const textEntity = document.querySelector('#ariaStatusText');
+        const textEntity = document.querySelector('#aliceStatusText');
         if (textEntity) {
           textEntity.setAttribute('value', statusString);
         }
       }
 
+      // Starts the EVA mission manually, keeping the human user in control of the simulation start.
       function startMission() {
         loadVoices();
         window.missionStarted = true;
@@ -199,11 +211,13 @@
   </head>
   <body style="margin: 0; overflow: hidden;">
 
+    <!-- Mission start screen. The user manually starts the EVA scenario. -->
     <div id="overlay">
       <h1>SYSTEM INITIALIZING...</h1>
       <button id="startBtn" onclick="startMission()">START EVA MISSION</button>
     </div>
 
+    <!-- Main A-Frame scene used for the VR / 3D EVA Proof of Concept. -->
     <a-scene loading-screen="enabled: false" starfield-generator webxr="referenceSpaceType: local">
       <a-assets>
         <a-asset-item id="myAsteroid" src="asteroid.glb"></a-asset-item>
@@ -212,8 +226,10 @@
       <a-entity id="cameraRig">
         <a-camera id="userCamera" position="0 1.6 0" look-controls>
           
+          <!-- HUD container attached to the camera so telemetry follows the astronaut's view. -->
           <a-entity id="hudMasterContainer" scale="0.6 0.6 0.6" position="0 0 0">
             
+            <!-- Simulated EVA systems panel: suit values that would normally come from spacesuit sensors. -->
             <a-entity position="-0.55 0.35 -1.2" scale="0.9 0.9 0.9">
               <a-text value="EVA SYSTEMS" color="cyan" width="1.2" position="0 0.1 0"></a-text>
               
@@ -230,6 +246,7 @@
               <a-plane color="cyan" width="0.2" height="0.008" position="0.15 -0.07 0" opacity="0.8"></a-plane>
             </a-entity>
 
+            <!-- Simulated biometrics panel: simplified astronaut health values. -->
             <a-entity position="0.38 0.35 -1.2" scale="0.9 0.9 0.9">
               <a-text value="BIOMETRICS" color="cyan" width="1.2" position="0 0.1 0"></a-text>
               
@@ -242,6 +259,7 @@
               <a-text value="37.2 C" color="cyan" width="1" position="0.21 0.01 0"></a-text>
             </a-entity>
 
+            <!-- Red warning indicator that appears when the PoC detects a collision risk. -->
             <a-text id="hudWarningSign" 
                     value="[ WARNING ]" 
                     color="red" 
@@ -251,9 +269,10 @@
                     animation="property: opacity; from: 1; to: 0.1; dur: 300; dir: alternate; loop: true">
             </a-text>
 
+            <!-- AI assistant panel showing Alice's current status and communication link. -->
             <a-entity position="0.32 -0.38 -1.2" scale="0.8 0.8 0.8">
               <a-text value="AI ASSISTANT" color="cyan" width="1.2" position="0 0.04 0"></a-text>
-              <a-text id="ariaStatusText" value="RADAR LOG: ACTIVE" color="white" width="0.9" position="0 0 0" opacity="0.8"></a-text>
+              <a-text id="aliceStatusText" value="RADAR LOG: ACTIVE" color="white" width="0.9" position="0 0 0" opacity="0.8"></a-text>
               <a-text value="COMMS LINK: STABLE" color="white" width="0.9" position="0 -0.04 0" opacity="0.6"></a-text>
             </a-entity>
 
@@ -265,6 +284,7 @@
         <a-entity laser-controls="hand: right"></a-entity>
       </a-entity>
 
+      <!-- Simulated space debris object. Its movement creates the collision-risk scenario. -->
       <a-entity id="spaceDebris" 
                 gltf-model="#myAsteroid" 
                 proximity-alert
