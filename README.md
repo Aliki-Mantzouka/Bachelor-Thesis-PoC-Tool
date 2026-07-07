@@ -1,8 +1,8 @@
 # EVA Cognitive Assistant PoC Tool
 
-# National and Kapodistrian University of Athens
-# Faculty of Economics and Political Sciences
-# Department of Business Administration
+** National and Kapodistrian University of Athens **
+** Faculty of Economics and Political Sciences **
+** Department of Business Administration **
 
 This repository contains an early-stage Proof of Concept (PoC) tool developed as part of my Bachelor Thesis on Reliable Artificial Intelligence-Driven Cognitive
 Assistants for Extravehicular Activity Missions: A Theoretical Framework and Implementation Proposal for Astronaut Safety .
